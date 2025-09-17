@@ -1,3 +1,6 @@
+## 📊 Latest Weather Plot
+
+![Kolkata Weather](https://aguchhait-stack.github.io/etl_kolkata_weather/kolkata_weather.png)
 # ETL Kolkata Weather
 
 This repository contains an ETL pipeline that extracts hourly weather data for Kolkata,
