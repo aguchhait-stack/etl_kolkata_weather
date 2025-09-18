@@ -2,3 +2,32 @@ zsh: command not found: 0
 /Library/Frameworks/Python.framework/Versions/3.13/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/arijitguchhait/Desktop/mydb/ETL/etl_kolkata_weather.py': [Errno 2] No such file or directory
 zsh: command not found: 0
 zsh: command not found: 0
+zsh: command not found: 0
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db (next 7 days only)
+<IPython.core.display.Image object>
+Traceback (most recent call last):
+  File "/Users/arijitguchhait/Desktop/mydb/ETL/etl_kolkata_weather.py", line 151, in <module>
+    df.info()
+    ^^
+NameError: name 'df' is not defined
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db (next 7 days only)
+<IPython.core.display.Image object>
+Traceback (most recent call last):
+  File "/Users/arijitguchhait/Desktop/mydb/ETL/etl_kolkata_weather.py", line 151, in <module>
+    df.info()
+    ^^
+NameError: name 'df' is not defined
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db (next 7 days only)
+<IPython.core.display.Image object>
+Traceback (most recent call last):
+  File "/Users/arijitguchhait/Desktop/mydb/ETL/etl_kolkata_weather.py", line 151, in <module>
+    df.info()
+    ^^
+NameError: name 'df' is not defined
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db | Rows: 168 | Last timestamp: 2025-09-24 04:30:00+05:30
+📊 Weather plot saved to /Users/arijitguchhait/Desktop/mydb/ETL/kolkata_weather.png
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db | Rows: 168 | Last timestamp: 2025-09-24 04:30:00+05:30
+📊 Weather plot saved to /Users/arijitguchhait/Desktop/mydb/ETL/kolkata_weather.png
+✅ Weather data loaded into /Users/arijitguchhait/Desktop/mydb/Database/weather.db | Rows: 168 | Last timestamp: 2025-09-24 04:30:00+05:30
+📊 Weather plot saved to /Users/arijitguchhait/Desktop/mydb/ETL/kolkata_weather.png
+zsh: command not found: 0

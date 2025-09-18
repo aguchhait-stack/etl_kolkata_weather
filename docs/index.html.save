@@ -1,0 +1,32 @@
+<img src="kolkata_weather.png" alt="Weather Forecast" width="1000">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kolkata 7-Day Weather Forecast</title>
+</head>
+<body>
+  <h1>Kolkata 7-Day Hourly Weather Forecast</h1>
+  <p>Last updated: <span id="date"></span></p>
+  <img src="kolkata_weather.png" alt="Weather Forecast" width="1000">
+  <script>
+    document.getElementById("date").textContent = new Date().toLocaleString();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kolkata 7-Day Weather Forecast</title>
+</head>
+<body>
+  <h1>Kolkata 7-Day Hourly Weather Forecast</h1>
+  <p>Last updated: <span id="date"></span></p>
+  <img src="../kolkata_weather.png" alt="Weather Forecast" width="1000">
+  <script>
+    document.getElementById("date").textContent = new Date().toLocaleString();
+  </script>
+</body>
+</html>
+

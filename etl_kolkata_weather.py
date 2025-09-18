@@ -3,137 +3,107 @@
 import requests
 import pandas as pd
 import sqlite3
-import os
-from datetime import timedelta
 import matplotlib.pyplot as plt
+from datetime import datetime
+import subprocess
+import os
+import filecmp
 
 # -----------------------
 # Config
 # -----------------------
-DB_DIR = "/Users/arijitguchhait/Desktop/mydb/Database"
-DB_NAME = "weather.db"
+DB_PATH = "/Users/arijitguchhait/Desktop/mydb/Database/weather.db"
 TABLE_NAME = "kolkata_weather"
+PLOT_PATH = "/Users/arijitguchhait/Desktop/mydb/ETL/kolkata_weather.png"
+HTML_PATH = "/Users/arijitguchhait/Desktop/mydb/ETL/index.html"
+REPO_PATH = "/Users/arijitguchhait/Desktop/mydb/ETL"
+
 LATITUDE = 22.5726
 LONGITUDE = 88.3639
-TIMEZONE = "Asia/Kolkata"
-db_path = os.path.join(DB_DIR, DB_NAME)
+API_URL = f"https://api.open-meteo.com/v1/forecast?latitude={LATITUDE}&longitude={LONGITUDE}&hourly=temperature_2m"
 
 # -----------------------
-# 1️⃣ Extract
+# Fetch data
 # -----------------------
-def extract_weather(latitude=LATITUDE, longitude=LONGITUDE):
-    url = (
-        f"https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}&longitude={longitude}"
-        f"&hourly=temperature_2m,relative_humidity_2m"
-        f"&timezone={TIMEZONE}"
-    )
-    resp = requests.get(url)
-    resp.raise_for_status()
-    return resp.json()['hourly']
+response = requests.get(API_URL)
+data = response.json()
 
-# -----------------------
-# 2️⃣ Transform
-# -----------------------
-def transform_weather(hourly_data):
-    df = pd.DataFrame({
-        'time': hourly_data['time'],
-        'temperature_c': hourly_data['temperature_2m'],
-        'humidity': hourly_data['relative_humidity_2m']
-    })
+df = pd.DataFrame({
+    "timestamp": pd.to_datetime(data['hourly']['time']),
+    "temperature": data['hourly']['temperature_2m']
+})
 
-    # Parse ISO8601 strings, which are already in UTC
-    df['time'] = pd.to_datetime(df['time'], utc=True)
-
-    # Convert to Kolkata timezone
-    df['time'] = df['time'].dt.tz_convert(TIMEZONE)
-
-    # Add ETL timestamp
-    df['extracted_at'] = pd.Timestamp.now(tz=TIMEZONE)
-
-    # Use a timezone-aware 'now' for comparison
-    now = pd.Timestamp.now(tz=TIMEZONE)
-
-    # Keep only next 7 days
-    df = df[df['time'] <= now + timedelta(days=7)].copy()
-
-    return df
+# Save to SQLite
+conn = sqlite3.connect(DB_PATH)
+df.to_sql(TABLE_NAME, conn, if_exists='replace', index=False)
+conn.close()
+print(f"✅ Weather data loaded into {DB_PATH} | Rows: {len(df)} | Last timestamp: {df['timestamp'].max()}")
 
 # -----------------------
-# 3️⃣ Load
+# Plotting
 # -----------------------
-def load_to_sqlite(df):
-    os.makedirs(DB_DIR, exist_ok=True)
-    
-    with sqlite3.connect(db_path) as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
-                time TEXT PRIMARY KEY,
-                temperature_c REAL,
-                humidity REAL,
-                extracted_at TEXT
-            )
-        """)
+plt.figure(figsize=(10,5))
+plt.plot(df['timestamp'], df['temperature'], marker='o')
+plt.title("Kolkata Hourly Temperature")
+plt.xlabel("Timestamp")
+plt.ylabel("Temperature (°C)")
+plt.xticks(rotation=45)
+plt.tight_layout()
 
-        # Insert or replace rows
-        for _, row in df.iterrows():
-            cursor.execute(f"""
-                INSERT OR REPLACE INTO {TABLE_NAME} (time, temperature_c, humidity, extracted_at)
-                VALUES (?, ?, ?, ?)
-            """, (
-                row['time'].isoformat(),
-                row['temperature_c'],
-                row['humidity'],
-                row['extracted_at'].isoformat()
-            ))
-        conn.commit()
+# TEMP plot file with explicit PNG format
+TEMP_PLOT = PLOT_PATH + ".tmp"
+plt.savefig(TEMP_PLOT, format='png')  # <-- FIXED HERE
+plt.close()
 
-    last_time = df['time'].max()
-    print(f"✅ Weather data loaded into {db_path} | Rows: {len(df)} | Last timestamp: {last_time}")
+# Only replace if plot changed
+plot_changed = True
+if os.path.exists(PLOT_PATH):
+    plot_changed = not filecmp.cmp(TEMP_PLOT, PLOT_PATH, shallow=False)
+
+if plot_changed:
+    os.replace(TEMP_PLOT, PLOT_PATH)
+    print(f"📊 Weather plot saved to {PLOT_PATH}")
+else:
+    os.remove(TEMP_PLOT)
+    print("ℹ️ Plot unchanged")
 
 # -----------------------
-# 4️⃣ Plot
+# Update index.html with latest timestamp
 # -----------------------
-def plot_weather():
-    with sqlite3.connect(db_path) as conn:
-        df = pd.read_sql(f"SELECT * FROM {TABLE_NAME} ORDER BY time ASC", conn)
+last_ts = df['timestamp'].max()
 
-    df['time'] = pd.to_datetime(df['time'], format='%Y-%m-%dT%H:%M:%S%z', errors='coerce')
-    df.dropna(subset=['time'], inplace=True)
-    df['time_plot'] = df['time'].dt.tz_localize(None)
+html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kolkata 7-Day Weather Forecast</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; text-align: center; margin: 40px; }}
+    footer {{ margin-top: 40px; font-size: 14px; color: #555; }}
+  </style>
+</head>
+<body>
+  <h1>Kolkata 7-Day Hourly Weather Forecast</h1>
+  <p>Last updated: {last_ts}</p>
+  <img src="kolkata_weather.png?ts={last_ts.strftime('%Y%m%d_%H%M')}" alt="Weather Forecast" width="1000">
+  <footer>© 2025 Created by <strong>Arijit Guchhait</strong></footer>
+</body>
+</html>
+"""
 
-    fig, ax1 = plt.subplots(figsize=(12,6))
-    ax1.plot(df['time_plot'], df['temperature_c'], color='tab:red', marker='o', label="Temperature (°C)")
-    ax1.set_xlabel("Time")
-    ax1.set_ylabel("Temperature (°C)", color="tab:red")
-    ax1.tick_params(axis="y", labelcolor="tab:red")
-    plt.xticks(rotation=45)
-
-    ax2 = ax1.twinx()
-    ax2.plot(df['time_plot'], df['humidity'], color='tab:blue', marker='x', label="Humidity (%)")
-    ax2.set_ylabel("Humidity (%)", color="tab:blue")
-    ax2.tick_params(axis="y", labelcolor="tab:blue")
-
-    plt.title("Kolkata 7-Day Hourly Weather Forecast")
-    plt.grid(True)
-    plt.tight_layout()
-
-    out_path = "/Users/arijitguchhait/Desktop/mydb/ETL/kolkata_weather.png"
-    plt.savefig(out_path)
-    plt.close()
-
-    print(f"📊 Weather plot saved to {out_path}")
+with open(HTML_PATH, "w") as f:
+    f.write(html_content)
+print(f"✅ index.html updated with latest timestamp")
 
 # -----------------------
-# 5️⃣ Run ETL + Plot
+# Git commit & push
 # -----------------------
-def run_etl():
-    hourly_data = extract_weather()
-    df = transform_weather(hourly_data)
-    load_to_sqlite(df)
-    plot_weather()
-
-# -----------------------
-if __name__ == "__main__":
-    run_etl()
+os.chdir(REPO_PATH)
+try:
+    subprocess.run(["git", "add", "kolkata_weather.png", "index.html"], check=True)
+    subprocess.run(["git", "commit", "-m", "Update weather plot"], check=True)
+    subprocess.run(["git", "push"], check=True)
+    print("✅ Git commit & push completed")
+except subprocess.CalledProcessError as e:
+    print("⚠️ Git command failed or no changes to commit:", e)
